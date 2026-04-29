@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0e1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SecurLog">
+<title>SecurLog – Système de Main Courante</title>
+<link rel="manifest" id="pwa-manifest">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Courier New', monospace; background: #0a0e1a; color: #c8d8e8; min-height: 100vh; }
+  #auth-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #0a0e1a; }
+  .auth-box { background: #111827; border: 1px solid #1e3a5f; border-radius: 4px; padding: 2.5rem; width: 360px; }
+  .auth-logo { text-align: center; margin-bottom: 2rem; }
+  .auth-logo .icon { font-size: 2rem; display: block; margin-bottom: 0.5rem; }
+  .auth-logo h1 { font-size: 1rem; color: #4a9ede; letter-spacing: 3px; text-transform: uppercase; font-weight: 700; }
+  .auth-logo p { font-size: 0.65rem; color: #4a6080; letter-spacing: 2px; margin-top: 0.25rem; }
+  .auth-tabs { display: flex; margin-bottom: 1.5rem; border-bottom: 1px solid #1e3a5f; }
+  .auth-tab { flex: 1; padding: 0.6rem; text-align: center; cursor: pointer; font-size: 0.7rem; letter-spacing: 1.5px; color: #4a6080; text-transform: uppercase; }
+  .auth-tab.active { color: #4a9ede; border-bottom: 2px solid #4a9ede; margin-bottom: -1px; }
+  .auth-form { display: flex; flex-direction: column; gap: 1rem; }
+  .auth-form label { font-size: 0.65rem; color: #4a6080; letter-spacing: 1.5px; text-transform: uppercase; display: block; margin-bottom: 4px; }
+  .auth-form input { width: 100%; background: #0a0e1a; border: 1px solid #1e3a5f; border-radius: 2px; padding: 0.6rem 0.75rem; color: #c8d8e8; font-family: 'Courier New', monospace; font-size: 0.85rem; }
+  .auth-form input:focus { outline: none; border-color: #4a9ede; }
+  .btn-primary { background: #1e3a5f; border: 1px solid #4a9ede; color: #4a9ede; padding: 0.75rem; font-family: 'Courier New', monospace; font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; width: 100%; border-radius: 2px; margin-top: 0.5rem; }
+  .btn-primary:hover { background: #4a9ede; color: #0a0e1a; }
+  .auth-error { color: #e24b4a; font-size: 0.75rem; text-align: center; padding: 0.5rem; border: 1px solid #a32d2d; border-radius: 2px; background: #1a0a0a; }
+  #app { display: none; min-height: 100vh; }
+  .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 220px; background: #111827; border-right: 1px solid #1e3a5f; display: flex; flex-direction: column; z-index: 10; }
+  .sidebar-header { padding: 1.25rem; border-bottom: 1px solid #1e3a5f; }
+  .sidebar-header h2 { font-size: 0.65rem; color: #4a9ede; letter-spacing: 2px; text-transform: uppercase; }
+  .sidebar-header p { font-size: 0.75rem; color: #c8d8e8; margin-top: 4px; }
+  .sidebar-role { font-size: 0.6rem; color: #4a6080; background: #1e3a5f; padding: 2px 6px; border-radius: 2px; display: inline-block; margin-top: 4px; letter-spacing: 1px; text-transform: uppercase; }
+  .sidebar-nav { flex: 1; padding: 1rem 0; overflow-y: auto; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 0.65rem 1.25rem; cursor: pointer; font-size: 0.75rem; color: #4a6080; letter-spacing: 0.5px; border-left: 3px solid transparent; }
+  .nav-item:hover { color: #c8d8e8; background: #1a2535; }
+  .nav-item.active { color: #4a9ede; background: #0f1d2e; border-left-color: #4a9ede; }
+  .nav-icon { font-size: 0.85rem; width: 20px; }
+  .sidebar-footer { padding: 1rem 1.25rem; border-top: 1px solid #1e3a5f; }
+  .btn-logout { width: 100%; background: transparent; border: 1px solid #2a3a4a; color: #4a6080; padding: 0.5rem; font-family: 'Courier New', monospace; font-size: 0.65rem; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; border-radius: 2px; }
+  .btn-logout:hover { border-color: #e24b4a; color: #e24b4a; }
+  .main { margin-left: 220px; padding: 2rem; min-height: 100vh; }
+  .page-header { margin-bottom: 1.5rem; border-bottom: 1px solid #1e3a5f; padding-bottom: 1rem; display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:8px; }
+  .page-header-text h2 { font-size: 0.9rem; color: #4a9ede; letter-spacing: 2px; text-transform: uppercase; }
+  .page-header-text p { font-size: 0.75rem; color: #4a6080; margin-top: 4px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 1.5rem; }
+  .stat-card { background: #111827; border: 1px solid #1e3a5f; border-radius: 3px; padding: 1rem; }
+  .stat-card .stat-val { font-size: 1.6rem; font-weight: 700; color: #4a9ede; }
+  .stat-card .stat-label { font-size: 0.65rem; color: #4a6080; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 4px; }
+  .stat-card.danger .stat-val { color: #e24b4a; }
+  .stat-card.success .stat-val { color: #27c99a; }
+  .stat-card.warn .stat-val { color: #f0a020; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  .data-table th { background: #0f1d2e; color: #4a6080; padding: 0.6rem 0.75rem; text-align: left; font-size: 0.65rem; letter-spacing: 1.5px; text-transform: uppercase; border-bottom: 1px solid #1e3a5f; }
+  .data-table td { padding: 0.65rem 0.75rem; border-bottom: 1px solid #0f1d2e; color: #c8d8e8; vertical-align: top; }
+  .data-table tr:hover td { background: #0f1d2e; }
+  .table-wrap { background: #111827; border: 1px solid #1e3a5f; border-radius: 3px; overflow: hidden; overflow-x: auto; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 2px; font-size: 0.65rem; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; }
+  .badge-info { background: #0f1d2e; color: #4a9ede; border: 1px solid #1e3a5f; }
+  .badge-danger { background: #1a0a0a; color: #e24b4a; border: 1px solid #a32d2d; }
+  .badge-success { background: #041a0e; color: #27c99a; border: 1px solid #0f6e56; }
+  .badge-warn { background: #1a0f00; color: #f0a020; border: 1px solid #854f0b; }
+  .badge-gray { background: #1a1f28; color: #4a6080; border: 1px solid #2a3a4a; }
+  .badge-purple { background: #1a0f2e; color: #9370db; border: 1px solid #5a3080; }
+  .form-section { background: #111827; border: 1px solid #1e3a5f; border-radius: 3px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .form-section h3 { font-size: 0.7rem; color: #4a9ede; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #1e3a5f; }
+  .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group label { font-size: 0.65rem; color: #4a6080; letter-spacing: 1.5px; text-transform: uppercase; }
+  .form-group input, .form-group select, .form-group textarea { background: #0a0e1a; border: 1px solid #1e3a5f; border-radius: 2px; padding: 0.55rem 0.75rem; color: #c8d8e8; font-family: 'Courier New', monospace; font-size: 0.82rem; }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #4a9ede; }
+  .form-group select option { background: #111827; }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+  .btn-sm { background: #1e3a5f; border: 1px solid #4a9ede; color: #4a9ede; padding: 0.4rem 0.9rem; font-family: 'Courier New', monospace; font-size: 0.65rem; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; border-radius: 2px; }
+  .btn-sm:hover { background: #4a9ede; color: #0a0e1a; }
+  .btn-sm.danger { border-color: #e24b4a; color: #e24b4a; background: transparent; }
+  .btn-sm.danger:hover { background: #e24b4a; color: #0a0e1a; }
+  .btn-sm.success { border-color: #27c99a; color: #27c99a; background: transparent; }
+  .btn-sm.success:hover { background: #27c99a; color: #0a0e1a; }
+  .timeline { position: relative; padding-left: 1.5rem; }
+  .timeline::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 1px; background: #1e3a5f; }
+  .tl-entry { position: relative; margin-bottom: 1rem; }
+  .tl-dot { position: absolute; left: -1.5rem; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #1e3a5f; border: 2px solid #4a9ede; transform: translateX(-4px); }
+  .tl-dot.incident { border-color: #e24b4a; background: #a32d2d; }
+  .tl-dot.ronde { border-color: #27c99a; background: #0f6e56; }
+  .tl-time { font-size: 0.65rem; color: #4a6080; letter-spacing: 1px; }
+  .tl-content { background: #111827; border: 1px solid #1e3a5f; border-radius: 2px; padding: 0.75rem; margin-top: 4px; }
+  .tl-content h4 { font-size: 0.75rem; color: #c8d8e8; margin-bottom: 4px; }
+  .tl-content p { font-size: 0.75rem; color: #4a6080; line-height: 1.5; }
+  .tl-meta { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
+  .schedule-grid { display: grid; grid-template-columns: 120px repeat(7, 1fr); gap: 1px; background: #1e3a5f; border-radius: 3px; overflow: hidden; }
+  .schedule-cell { background: #0a0e1a; padding: 0.5rem; font-size: 0.7rem; }
+  .schedule-cell.header { background: #0f1d2e; color: #4a6080; text-align: center; font-size: 0.65rem; letter-spacing: 1px; text-transform: uppercase; }
+  .schedule-cell.agent-name { color: #c8d8e8; font-size: 0.72rem; display: flex; align-items: center; }
+  .schedule-shift { background: #1e3a5f; border: 1px solid #4a9ede; border-radius: 2px; padding: 3px 6px; font-size: 0.62rem; color: #4a9ede; margin: 2px 0; cursor: pointer; text-align: center; }
+  .schedule-shift:hover { background: #4a9ede; color: #0a0e1a; }
+  .schedule-shift.repos { background: #0f1d2e; border-color: #2a3a4a; color: #4a6080; cursor: default; }
+  .schedule-shift.nuit { border-color: #9370db; color: #9370db; background: #1a1030; }
+  .alert { padding: 0.75rem 1rem; border-radius: 2px; font-size: 0.78rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 10px; }
+  .alert-success { background: #041a0e; border: 1px solid #0f6e56; color: #27c99a; }
+  .alert-danger { background: #1a0a0a; border: 1px solid #a32d2d; color: #e24b4a; }
+  .alert-info { background: #0f1d2e; border: 1px solid #1e3a5f; color: #4a9ede; }
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,10,0.85); z-index: 100; align-items: center; justify-content: center; }
+  .modal-bg.open { display: flex; }
+  .modal { background: #111827; border: 1px solid #1e3a5f; border-radius: 3px; padding: 1.5rem; width: 500px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
+  .modal h3 { font-size: 0.75rem; color: #4a9ede; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 1.25rem; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1.25rem; border-top: 1px solid #1e3a5f; padding-top: 1rem; }
+  .tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .actions-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
+  .search-input { background: #0a0e1a; border: 1px solid #1e3a5f; border-radius: 2px; padding: 0.4rem 0.75rem; color: #c8d8e8; font-family: 'Courier New', monospace; font-size: 0.78rem; width: 220px; }
+  .search-input:focus { outline: none; border-color: #4a9ede; }
+  .incident-priority-high { border-left: 3px solid #e24b4a !important; }
+  .incident-priority-med { border-left: 3px solid #f0a020 !important; }
+  .incident-priority-low { border-left: 3px solid #4a9ede !important; }
+  #notification { position: fixed; top: 1rem; right: 1rem; z-index: 200; display: none; }
+  #notification.show { display: block; }
+  .notif-box { background: #111827; border: 1px solid #27c99a; color: #27c99a; font-size: 0.75rem; padding: 0.75rem 1rem; border-radius: 2px; letter-spacing: 0.5px; }
+  .confirm-box { background: #1a0a0a; border: 1px solid #a32d2d; border-radius: 3px; padding: 1.25rem; }
+  .confirm-box p { color: #e24b4a; font-size: 0.82rem; margin-bottom: 1rem; line-height: 1.6; }
+  #loading-overlay { position:fixed; inset:0; background:#0a0e1a; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:999; }
+  #loading-overlay .spin { width:32px; height:32px; border:2px solid #1e3a5f; border-top-color:#4a9ede; border-radius:50%; animation:spin 0.8s linear infinite; margin-bottom:1rem; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  #loading-overlay p { font-size:0.75rem; color:#4a6080; letter-spacing:2px; text-transform:uppercase; }
+  /* SITES */
+  .sites-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px; }
+  .site-card { background:#111827; border:1px solid #1e3a5f; border-radius:4px; padding:1.25rem; position:relative; transition:border-color 0.2s; }
+  .site-card:hover { border-color:#4a9ede; }
+  .site-card h4 { font-size:0.85rem; color:#c8d8e8; margin-bottom:6px; }
+  .site-card p { font-size:0.72rem; color:#4a6080; margin-bottom:10px; line-height:1.5; }
+  .site-card-actions { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .pwa-btn { background:#1e3a5f; border:1px solid #27c99a; color:#27c99a; padding:0.35rem 0.75rem; font-family:'Courier New',monospace; font-size:0.62rem; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; border-radius:2px; text-decoration:none; display:inline-flex; align-items:center; gap:4px; }
+  .pwa-btn:hover { background:#27c99a; color:#0a0e1a; }
+  .site-color-dot { width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:6px; }
+  .pw-visible-toggle { background:transparent; border:none; color:#4a6080; cursor:pointer; font-size:0.75rem; padding:0 4px; }
+  .pw-field-wrap { position:relative; display:flex; align-items:center; }
+  .pw-field-wrap input { flex:1; padding-right:2rem; }
+  .pw-field-wrap button { position:absolute; right:6px; background:none; border:none; color:#4a6080; cursor:pointer; font-size:0.8rem; }
+</style>
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div class="spin"></div>
+  <p>Connexion à Firebase...</p>
+</div>
+
+<div id="notification"><div class="notif-box" id="notif-msg"></div></div>
+
+<div id="auth-screen" style="display:none;">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <span class="icon">🛡</span>
+      <h1>SecurLog</h1>
+      <p>SYSTÈME DE MAIN COURANTE</p>
+    </div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchAuthTab('admin')">Admin</div>
+      <div class="auth-tab" onclick="switchAuthTab('agent')">Agent</div>
+    </div>
+    <div class="auth-form">
+      <div>
+        <label>Identifiant</label>
+        <input type="text" id="login-id" placeholder="identifiant..." autocomplete="off"/>
+      </div>
+      <div>
+        <label>Mot de passe</label>
+        <div class="pw-field-wrap">
+          <input type="password" id="login-pw" placeholder="••••••••"/>
+          <button type="button" onclick="togglePw('login-pw',this)">👁</button>
+        </div>
+      </div>
+      <div id="auth-error" style="display:none;" class="auth-error"></div>
+      <button class="btn-primary" onclick="doLogin()">Connexion</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h2>🛡 SecurLog</h2>
+      <p id="sb-username">—</p>
+      <span class="sidebar-role" id="sb-role">—</span>
+    </div>
+    <nav class="sidebar-nav" id="sidebar-nav"></nav>
+    <div class="sidebar-footer">
+      <div id="sb-clock" style="font-size:0.72rem; color:#4a9ede; margin-bottom:0.5rem; font-family:monospace;"></div>
+      <button class="btn-logout" onclick="doLogout()">⏻ Déconnexion</button>
+    </div>
+  </div>
+  <div class="main" id="main-content"></div>
+</div>
+
+<div id="modal-bg" class="modal-bg">
+  <div class="modal" id="modal-inner"></div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, push, remove, update, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB88TfKZBhQaW1VIvt3Zo_2lh2F9Q2kAd0",
+  authDomain: "maincourante-claude-2.firebaseapp.com",
+  databaseURL: "https://maincourante-claude-2-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "maincourante-claude-2",
+  storageBucket: "maincourante-claude-2.firebasestorage.app",
+  messagingSenderId: "864916383698",
+  appId: "1:864916383698:web:a3982be2aaca64f07f0a0b"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ─── PWA Manifest ───
+const manifest = {
+  name: "SecurLog",
+  short_name: "SecurLog",
+  start_url: window.location.href,
+  display: "standalone",
+  background_color: "#0a0e1a",
+  theme_color: "#0a0e1a",
+  icons: [{ src: "https://via.placeholder.com/192/0a0e1a/4a9ede?text=SL", sizes: "192x192", type: "image/png" }]
+};
+const blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+document.getElementById('pwa-manifest').href = URL.createObjectURL(blob);
+
+// ─── State ───
+let state = {
+  currentUser: null,
+  currentRole: null,
+  currentPage: null,
+  agents: [],
+  admins: [],
+  mainCourante: [],
+  rondes: [],
+  planning: {},
+  sites: []
+};
+
+// ─── Helpers ───
+const DAYS = ['2025-04-28','2025-04-29','2025-04-30','2025-05-01','2025-05-02','2025-05-03','2025-05-04'];
+const DAY_LABELS = ['Lun 28/04','Mar 29/04','Mer 30/04','Jeu 01/05','Ven 02/05','Sam 03/05','Dim 04/05'];
+
+window.togglePw = function(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if(inp.type==='password'){ inp.type='text'; btn.textContent='🙈'; }
+  else { inp.type='password'; btn.textContent='👁'; }
+};
+
+function updateClock() {
+  const el = document.getElementById('sb-clock');
+  if(el) { const now = new Date(); el.textContent = now.toLocaleDateString('fr-FR')+' '+now.toLocaleTimeString('fr-FR'); }
+}
+setInterval(updateClock, 1000); updateClock();
+
+window.notify = function(msg, type='success') {
+  const n = document.getElementById('notification');
+  const b = document.getElementById('notif-msg');
+  b.textContent = msg;
+  b.style.borderColor = type==='danger'?'#e24b4a':'#27c99a';
+  b.style.color = type==='danger'?'#e24b4a':'#27c99a';
+  n.classList.add('show');
+  setTimeout(()=>n.classList.remove('show'), 3200);
+};
+
+// ─── Firebase CRUD ───
+async function fbSet(path, data) { await set(ref(db, path), data); }
+async function fbGet(path) { const s = await get(ref(db, path)); return s.exists()?s.val():null; }
+async function fbPush(path, data) { return push(ref(db, path), data); }
+async function fbRemove(path) { await remove(ref(db, path)); }
+async function fbUpdate(path, data) { await update(ref(db, path), data); }
+
+function fbListen(path, cb) { onValue(ref(db, path), snap => cb(snap.exists()?snap.val():null)); }
+
+// ─── Load initial data from Firebase ───
+async function loadAllData() {
+  const [agents, admins, mc, rondes, planning, sites] = await Promise.all([
+    fbGet('agents'), fbGet('admins'), fbGet('mainCourante'),
+    fbGet('rondes'), fbGet('planning'), fbGet('sites')
+  ]);
+
+  // Agents
+  if(agents) {
+    state.agents = Object.entries(agents).map(([k,v])=>({...v, _key:k}));
+  } else {
+    // Seed default agents
+    const defaultAgents = [
+      {id:'martin',name:'Martin Dupont',password:'agent123',site:'Site A',status:'actif',phone:'0601020304',email:'martin@securlog.fr',isAdmin:false},
+      {id:'leblanc',name:'Sophie Leblanc',password:'agent456',site:'Site B',status:'actif',phone:'0605060708',email:'leblanc@securlog.fr',isAdmin:false},
+      {id:'garcia',name:'Carlos Garcia',password:'agent789',site:'Site A',status:'actif',phone:'0609101112',email:'garcia@securlog.fr',isAdmin:false}
+    ];
+    for(const a of defaultAgents) { const r=await fbPush('agents',a); a._key=r.key; }
+    state.agents = defaultAgents;
+  }
+
+  // Admins
+  if(admins) {
+    state.admins = Object.entries(admins).map(([k,v])=>({...v,_key:k}));
+  } else {
+    const defAdm = [{id:'admin',name:'Admin Central',password:'admin123',role:'super'}];
+    for(const a of defAdm) { const r=await fbPush('admins',a); a._key=r.key; }
+    state.admins = defAdm;
+  }
+
+  // Main courante
+  if(mc) {
+    state.mainCourante = Object.entries(mc).map(([k,v])=>({...v,_key:k}));
+    state.mainCourante.sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
+  } else {
+    const defMC = [
+      {date:'2025-04-28',time:'07:15',agentId:'martin',agentName:'Martin Dupont',type:'prise_poste',priority:'low',title:'Prise de poste',description:'Prise de poste effectuée. RAS. Matériel vérifié.',site:'Site A',status:'validé'},
+      {date:'2025-04-28',time:'09:30',agentId:'martin',agentName:'Martin Dupont',type:'ronde',priority:'low',title:'Ronde de sécurité',description:'Ronde périmétrique effectuée. Zones 1 à 4 contrôlées. Rien à signaler.',site:'Site A',status:'validé'},
+      {date:'2025-04-28',time:'11:45',agentId:'leblanc',agentName:'Sophie Leblanc',type:'incident',priority:'high',title:'Intrusion tentative',description:'Individu inconnu tenté d\'accéder au bâtiment B sans badge. Interpellé et reconduit à l\'extérieur.',site:'Site B',status:'en cours'},
+    ];
+    for(const e of defMC){ const r=await fbPush('mainCourante',e); e._key=r.key; }
+    state.mainCourante = defMC;
+  }
+
+  // Rondes
+  if(rondes) {
+    state.rondes = Object.entries(rondes).map(([k,v])=>({...v,_key:k}));
+  } else {
+    state.rondes = [];
+  }
+
+  // Planning
+  state.planning = planning || {};
+
+  // Sites
+  if(sites) {
+    state.sites = Object.entries(sites).map(([k,v])=>({...v,_key:k}));
+  } else {
+    const defSites = [
+      {name:'Site A',address:'123 Rue de la Paix, Marseille',description:'Zone industrielle nord',color:'#4a9ede'},
+      {name:'Site B',address:'45 Avenue du Port, Marseille',description:'Centre commercial',color:'#27c99a'},
+    ];
+    for(const s of defSites){ const r=await fbPush('sites',s); s._key=r.key; }
+    state.sites = defSites;
+  }
+}
+
+// ─── Auth ───
+let authTab = 'admin';
+window.switchAuthTab = function(tab) {
+  authTab = tab;
+  document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&tab==='admin')||(i===1&&tab==='agent')));
+  document.getElementById('login-id').value='';
+  document.getElementById('login-pw').value='';
+  document.getElementById('auth-error').style.display='none';
+};
+
+window.doLogin = async function() {
+  const id = document.getElementById('login-id').value.trim();
+  const pw = document.getElementById('login-pw').value;
+  const errEl = document.getElementById('auth-error');
+  errEl.style.display='none';
+  if(authTab==='admin') {
+    const adm = state.admins.find(a=>a.id===id&&a.password===pw);
+    if(!adm){ errEl.textContent='Identifiants invalides.'; errEl.style.display='block'; return; }
+    state.currentUser=adm; state.currentRole='admin';
+  } else {
+    // Check agents + agents with isAdmin flag
+    const agent = state.agents.find(a=>a.id===id&&a.password===pw&&a.status==='actif');
+    if(!agent){ errEl.textContent='Identifiants invalides ou compte inactif.'; errEl.style.display='block'; return; }
+    state.currentUser=agent;
+    state.currentRole = agent.isAdmin ? 'admin' : 'agent';
+  }
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('sb-username').textContent=state.currentUser.name;
+  document.getElementById('sb-role').textContent=state.currentRole==='admin'?'Administrateur':'Agent de sécurité';
+  buildNav();
+  navTo(state.currentRole==='admin'?'dashboard':'saisie');
+};
+
+window.doLogout = function() {
+  state.currentUser=null; state.currentRole=null; state.currentPage=null;
+  document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-id').value='';
+  document.getElementById('login-pw').value='';
+};
+
+// ─── Nav ───
+const adminNav = [
+  {id:'dashboard',icon:'◈',label:'Tableau de bord'},
+  {id:'main_courante',icon:'📋',label:'Main courante'},
+  {id:'rondes',icon:'🔄',label:'Rondes'},
+  {id:'planning',icon:'📅',label:'Planning'},
+  {id:'agents',icon:'👥',label:'Agents'},
+  {id:'sites',icon:'🏢',label:'Sites'},
+  {id:'rapports',icon:'📊',label:'Rapports'},
+];
+const agentNav = [
+  {id:'saisie',icon:'✏',label:'Saisir un événement'},
+  {id:'mes_rondes',icon:'🔄',label:'Mes rondes'},
+  {id:'mon_planning',icon:'📅',label:'Mon planning'},
+  {id:'historique',icon:'📋',label:'Mon historique'},
+  {id:'sites',icon:'🏢',label:'Sites de travail'},
+];
+
+function buildNav() {
+  const nav = document.getElementById('sidebar-nav');
+  const items = state.currentRole==='admin'?adminNav:agentNav;
+  nav.innerHTML = items.map(i=>`<div class="nav-item" id="nav-${i.id}" onclick="navTo('${i.id}')"><span class="nav-icon">${i.icon}</span>${i.label}</div>`).join('');
+}
+
+window.navTo = function(page) {
+  state.currentPage=page;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const navEl = document.getElementById('nav-'+page);
+  if(navEl) navEl.classList.add('active');
+  const renders = {
+    dashboard:renderDashboard, main_courante:renderMainCourante, rondes:renderRondes,
+    planning:renderPlanning, agents:renderAgents, rapports:renderRapports,
+    saisie:renderSaisie, mes_rondes:renderMesRondes, mon_planning:renderMonPlanning,
+    historique:renderHistorique, sites:renderSites
+  };
+  const main = document.getElementById('main-content');
+  main.innerHTML = renders[page] ? renders[page]() : '<p style="color:#4a6080;">Page introuvable.</p>';
+};
+
+// ─── DASHBOARD ───
+function renderDashboard() {
+  const today = state.mainCourante.filter(e=>e.date==='2025-04-28');
+  const incidents = state.mainCourante.filter(e=>e.type==='incident');
+  const enCours = state.mainCourante.filter(e=>e.status==='en cours');
+  const recent = [...state.mainCourante].reverse().slice(0,5);
+  return `
+  <div class="page-header"><div class="page-header-text"><h2>◈ Tableau de bord</h2><p>Vue d'ensemble temps réel</p></div></div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-val">${state.mainCourante.length}</div><div class="stat-label">Événements total</div></div>
+    <div class="stat-card warn"><div class="stat-val">${today.length}</div><div class="stat-label">Aujourd'hui</div></div>
+    <div class="stat-card danger"><div class="stat-val">${incidents.length}</div><div class="stat-label">Incidents</div></div>
+    <div class="stat-card"><div class="stat-val">${state.agents.filter(a=>a.status==='actif').length}</div><div class="stat-label">Agents actifs</div></div>
+    <div class="stat-card success"><div class="stat-val">${state.rondes.length}</div><div class="stat-label">Rondes</div></div>
+    <div class="stat-card danger"><div class="stat-val">${enCours.length}</div><div class="stat-label">En cours</div></div>
+  </div>
+  ${enCours.length>0?`<div class="alert alert-danger">⚠ ${enCours.length} événement(s) nécessitent une attention immédiate</div>`:''}
+  <div class="form-section"><h3>Derniers événements</h3>
+    <div class="timeline">${recent.map(e=>`
+      <div class="tl-entry">
+        <div class="tl-dot ${e.type==='incident'?'incident':e.type==='ronde'?'ronde':'info'}"></div>
+        <div class="tl-time">${e.date} ${e.time} — ${e.agentName} — ${e.site}</div>
+        <div class="tl-content ${e.priority==='high'?'incident-priority-high':e.priority==='med'?'incident-priority-med':'incident-priority-low'}">
+          <h4>${e.title}</h4><p>${e.description}</p>
+          <div class="tl-meta">${typeBadge(e.type)} ${priorityBadge(e.priority)} ${statusBadge(e.status)}</div>
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ─── MAIN COURANTE ───
+function renderMainCourante() {
+  const sorted = [...state.mainCourante].reverse();
+  return `
+  <div class="page-header"><div class="page-header-text"><h2>📋 Main courante</h2><p>Registre chronologique de tous les événements</p></div></div>
+  <div class="actions-bar">
+    <input class="search-input" type="text" placeholder="Rechercher..." oninput="filterMC(this.value)" id="mc-search"/>
+    <select onchange="filterMCType(this.value)" style="background:#0a0e1a;border:1px solid #1e3a5f;color:#c8d8e8;padding:0.4rem;font-family:monospace;font-size:0.78rem;border-radius:2px;">
+      <option value="">Tous types</option>
+      <option value="incident">Incident</option><option value="ronde">Ronde</option>
+      <option value="prise_poste">Prise de poste</option><option value="transmission">Transmission</option><option value="info">Information</option>
+    </select>
+    <select onchange="filterMCAgent(this.value)" style="background:#0a0e1a;border:1px solid #1e3a5f;color:#c8d8e8;padding:0.4rem;font-family:monospace;font-size:0.78rem;border-radius:2px;">
+      <option value="">Tous agents</option>
+      ${state.agents.map(a=>`<option value="${a.id}">${a.name}</option>`).join('')}
+    </select>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table" id="mc-table"><thead>
+      <tr><th>Date/Heure</th><th>Agent</th><th>Site</th><th>Type</th><th>Événement</th><th>Priorité</th><th>Statut</th><th>Actions</th></tr>
+    </thead><tbody>
+      ${sorted.map(e=>`
+        <tr data-key="${e._key}" data-type="${e.type}" data-agent="${e.agentId}">
+          <td style="white-space:nowrap;">${e.date}<br><span style="color:#4a6080;">${e.time}</span></td>
+          <td>${e.agentName}</td><td>${e.site}</td><td>${typeBadge(e.type)}</td>
+          <td><strong style="font-size:0.78rem;">${e.title}</strong><br><span style="color:#4a6080;font-size:0.72rem;">${(e.description||'').substring(0,60)}${(e.description||'').length>60?'...':''}</span></td>
+          <td>${priorityBadge(e.priority)}</td><td>${statusBadge(e.status)}</td>
+          <td style="white-space:nowrap;">
+            <button class="btn-sm" onclick="viewEvent('${e._key}')">Voir</button>
+            ${e.status==='en cours'?`<button class="btn-sm success" onclick="validerEvent('${e._key}')" style="margin-left:4px;">Valider</button>`:''}
+            <button class="btn-sm danger" onclick="confirmDeleteEvent('${e._key}')" style="margin-left:4px;">Suppr.</button>
+          </td>
+        </tr>`).join('')}
+    </tbody></table>
+  </div>`;
+}
+
+window.filterMC = function(val) { document.querySelectorAll('#mc-table tbody tr').forEach(r=>{ r.style.display=r.textContent.toLowerCase().includes(val.toLowerCase())?'':'none'; }); };
+window.filterMCType = function(val) { document.querySelectorAll('#mc-table tbody tr').forEach(r=>{ r.style.display=(!val||r.dataset.type===val)?'':'none'; }); };
+window.filterMCAgent = function(val) { document.querySelectorAll('#mc-table tbody tr').forEach(r=>{ r.style.display=(!val||r.dataset.agent===val)?'':'none'; }); };
+
+window.viewEvent = function(key) {
+  const e = state.mainCourante.find(x=>x._key===key);
+  if(!e) return;
+  openModal(`
+    <h3>Détail événement</h3>
+    <div style="display:flex;flex-direction:column;gap:0.75rem;">
+      <div><span style="font-size:0.65rem;color:#4a6080;text-transform:uppercase;letter-spacing:1px;">Date / Heure</span><br><span style="color:#c8d8e8;">${e.date} à ${e.time}</span></div>
+      <div><span style="font-size:0.65rem;color:#4a6080;text-transform:uppercase;letter-spacing:1px;">Agent</span><br><span style="color:#c8d8e8;">${e.agentName}</span></div>
+      <div><span style="font-size:0.65rem;color:#4a6080;text-transform:uppercase;letter-spacing:1px;">Site</span><br><span style="color:#c8d8e8;">${e.site}</span></div>
+      <div><span style="font-size:0.65rem;color:#4a6080;text-transform:uppercase;letter-spacing:1px;">Type</span><br>${typeBadge(e.type)}</div>
+      <div><span style="font-size:0.65rem;color:#4a6080;text-transform:uppercase;letter-spacing:1px;">Titre</span><br><strong style="color:#c8d8e8;">${e.title}</strong></div>
+      <div><span style="font-size:0.65rem;color:#4a6080;text-transform:uppercase;letter-spacing:1px;">Description</span><br><p style="color:#c8d8e8;line-height:1.6;font-size:0.82rem;margin-top:4px;">${e.description}</p></div>
+      <div style="display:flex;gap:8px;">${priorityBadge(e.priority)} ${statusBadge(e.status)}</div>
+    </div>
+    <div class="modal-actions">
+      ${e.status==='en cours'?`<button class="btn-sm success" onclick="validerEvent('${e._key}');closeModal()">✓ Valider</button>`:''}
+      <button class="btn-sm danger" onclick="closeModal();confirmDeleteEvent('${e._key}')">Supprimer</button>
+      <button class="btn-sm" onclick="closeModal()">Fermer</button>
+    </div>`);
+};
+
+window.confirmDeleteEvent = function(key) {
+  const e = state.mainCourante.find(x=>x._key===key);
+  if(!e) return;
+  openModal(`
+    <h3>Confirmer la suppression</h3>
+    <div class="confirm-box">
+      <p>Supprimer définitivement cet événement ?</p>
+      <div style="background:#0a0e1a;border:1px solid #2a3a4a;border-radius:2px;padding:0.75rem;margin-bottom:0.75rem;">
+        <div style="font-size:0.78rem;color:#c8d8e8;font-weight:600;">${e.title}</div>
+        <div style="font-size:0.72rem;color:#4a6080;margin-top:4px;">${e.date} ${e.time} — ${e.agentName}</div>
+        <div style="margin-top:6px;">${typeBadge(e.type)} ${priorityBadge(e.priority)}</div>
+      </div>
+      <p style="font-size:0.75rem;">Cette action est irréversible.</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sm" onclick="closeModal()">Annuler</button>
+      <button class="btn-sm danger" onclick="deleteEvent('${key}')">Supprimer définitivement</button>
+    </div>`);
+};
+
+window.deleteEvent = async function(key) {
+  await fbRemove('mainCourante/'+key);
+  state.mainCourante = state.mainCourante.filter(x=>x._key!==key);
+  closeModal(); notify('Événement supprimé');
+  navTo(state.currentPage||'main_courante');
+};
+
+window.validerEvent = async function(key) {
+  await fbUpdate('mainCourante/'+key, {status:'validé'});
+  const e = state.mainCourante.find(x=>x._key===key);
+  if(e) e.status='validé';
+  notify('Événement validé');
+  navTo(state.currentPage||'main_courante');
+};
+
+// ─── RONDES ───
+function renderRondes() {
+  return `
+  <div class="page-header"><div class="page-header-text"><h2>🔄 Rondes de sécurité</h2><p>Suivi de toutes les rondes</p></div></div>
+  <div class="table-wrap"><table class="data-table">
+    <thead><tr><th>Date</th><th>Agent</th><th>Début</th><th>Fin</th><th>Zones</th><th>Anomalies</th><th>Statut</th><th>Action</th></tr></thead>
+    <tbody>${state.rondes.map(r=>`
+      <tr>
+        <td>${r.date}</td><td>${r.agentName}</td><td>${r.start}</td><td>${r.end}</td>
+        <td><div class="tag-list">${(r.zones||[]).map(z=>`<span class="badge badge-info">${z}</span>`).join('')}</div></td>
+        <td style="font-size:0.75rem;color:${r.anomalies==='RAS'?'#27c99a':'#f0a020'};">${r.anomalies}</td>
+        <td>${r.status==='complète'?'<span class="badge badge-success">Complète</span>':'<span class="badge badge-warn">Anomalie</span>'}</td>
+        <td><button class="btn-sm danger" onclick="deleteRonde('${r._key}')">Suppr.</button></td>
+      </tr>`).join('')}
+    </tbody>
+  </table></div>`;
+}
+
+window.deleteRonde = async function(key) {
+  await fbRemove('rondes/'+key);
+  state.rondes = state.rondes.filter(r=>r._key!==key);
+  notify('Ronde supprimée'); navTo('rondes');
+};
+
+// ─── PLANNING ───
+function renderPlanning() {
+  const siteOptions = state.sites.map(s=>`<option value="${s.name}">${s.name}</option>`).join('');
+  return `
+  <div class="page-header"><div class="page-header-text"><h2>📅 Planning des agents</h2><p>Cliquez sur un créneau pour modifier</p></div></div>
+  <div class="form-section">
+    <h3>Semaine du 28 avril au 4 mai 2025</h3>
+    <div style="overflow-x:auto;">
+      <div class="schedule-grid" style="min-width:800px;">
+        <div class="schedule-cell header">Agent</div>
+        ${DAY_LABELS.map(d=>`<div class="schedule-cell header">${d}</div>`).join('')}
+        ${state.agents.map(agent=>`
+          <div class="schedule-cell agent-name">${agent.name.split(' ')[0]}</div>
+          ${DAYS.map(day=>{
+            const agPlan = state.planning[agent.id]||{};
+            const entry = agPlan[day]||null;
+            const shift = entry?entry.shift:'—';
+            const site = entry?entry.site:'';
+            const cls = shift==='Repos'?'repos':shift.startsWith('N')?'nuit':'';
+            return `<div class="schedule-cell">
+              <div class="schedule-shift ${cls}" onclick="editShift('${agent.id}','${day}','${shift}','${site}')" title="${site?'Site: '+site:''}">
+                ${shift}${site?`<br><span style="font-size:0.55rem;opacity:0.7;">${site}</span>`:''}
+              </div>
+            </div>`;
+          }).join('')}
+        `).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+window.editShift = function(agentId, day, current, currentSite) {
+  const agent = state.agents.find(a=>a.id===agentId);
+  const siteOptions = state.sites.map(s=>`<option value="${s.name}" ${currentSite===s.name?'selected':''}>${s.name}</option>`).join('');
+  openModal(`
+    <h3>Modifier le planning</h3>
+    <p style="font-size:0.78rem;color:#4a6080;margin-bottom:1rem;">${agent.name} — ${day}</p>
+    <div class="form-group" style="margin-bottom:0.75rem;">
+      <label>Créneau</label>
+      <select id="shift-val">
+        <option ${current==='Repos'?'selected':''}>Repos</option>
+        <option ${current==='J 06h-14h'?'selected':''}>J 06h-14h</option>
+        <option ${current==='J 14h-22h'?'selected':''}>J 14h-22h</option>
+        <option ${current==='N 22h-06h'?'selected':''}>N 22h-06h</option>
+        <option value="custom">Personnalisé...</option>
+      </select>
+    </div>
+    <div class="form-group" id="custom-shift-row" style="display:none;margin-bottom:0.75rem;">
+      <label>Horaire personnalisé</label>
+      <input type="text" id="custom-shift-val" placeholder="ex: J 08h-16h"/>
+    </div>
+    <div class="form-group">
+      <label>Site de travail</label>
+      <select id="shift-site">
+        <option value="">— Choisir un site —</option>
+        ${siteOptions}
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sm" onclick="closeModal()">Annuler</button>
+      <button class="btn-sm success" onclick="saveShift('${agentId}','${day}')">Enregistrer</button>
+    </div>`);
+  document.getElementById('shift-val').addEventListener('change',function(){
+    document.getElementById('custom-shift-row').style.display=this.value==='custom'?'flex':'none';
+  });
+};
+
+window.saveShift = async function(agentId, day) {
+  let val = document.getElementById('shift-val').value;
+  if(val==='custom') val = document.getElementById('custom-shift-val').value.trim()||'—';
+  const site = document.getElementById('shift-site').value;
+  if(!state.planning[agentId]) state.planning[agentId]={};
+  state.planning[agentId][day] = {shift:val, site};
+  await fbSet(`planning/${agentId}/${day}`, {shift:val, site});
+  closeModal(); notify('Planning mis à jour'); navTo('planning');
+};
+
+// ─── AGENTS ───
+function renderAgents() {
+  return `
+  <div class="page-header">
+    <div class="page-header-text"><h2>👥 Gestion des agents</h2><p>Créer, modifier et gérer les comptes</p></div>
+    <button class="btn-sm success" onclick="openCreateAgent()">+ Créer un agent</button>
+  </div>
+  <div class="table-wrap"><table class="data-table">
+    <thead><tr><th>Identifiant</th><th>Nom</th><th>Site</th><th>Rôle</th><th>Contact</th><th>Statut</th><th>Actions</th></tr></thead>
+    <tbody>${state.agents.map(a=>`
+      <tr>
+        <td><span class="badge badge-gray">${a.id}</span></td>
+        <td>${a.name}</td>
+        <td>${a.site}</td>
+        <td>${a.isAdmin?'<span class="badge badge-purple">Admin</span>':'<span class="badge badge-info">Agent</span>'}</td>
+        <td style="font-size:0.72rem;color:#4a6080;">${a.phone||'—'}<br>${a.email||'—'}</td>
+        <td>${a.status==='actif'?'<span class="badge badge-success">Actif</span>':'<span class="badge badge-danger">Inactif</span>'}</td>
+        <td style="white-space:nowrap;display:flex;gap:4px;flex-wrap:wrap;">
+          <button class="btn-sm" onclick="editAgent('${a._key}')">Modifier</button>
+          <button class="btn-sm ${a.status==='actif'?'danger':''}" onclick="toggleAgent('${a._key}')">${a.status==='actif'?'Désactiver':'Activer'}</button>
+          <button class="btn-sm danger" onclick="confirmDeleteAgent('${a._key}')">Suppr.</button>
+        </td>
+      </tr>`).join('')}
+    </tbody>
+  </table></div>`;
+}
+
+window.openCreateAgent = function() {
+  const siteOptions = state.sites.map(s=>`<option value="${s.name}">${s.name}</option>`).join('');
+  openModal(`
+    <h3>Créer un agent</h3>
+    <div style="display:flex;flex-direction:column;gap:0.75rem;">
+      <div class="form-group"><label>Identifiant *</label><input id="na-id" placeholder="ex: bernard"/></div>
+      <div class="form-group"><label>Nom complet *</label><input id="na-name" placeholder="ex: Paul Bernard"/></div>
+      <div class="form-group"><label>Mot de passe *</label>
+        <div class="pw-field-wrap"><input type="password" id="na-pw" placeholder="••••••••"/><button type="button" onclick="togglePw('na-pw',this)">👁</button></div>
+      </div>
+      <div class="form-group"><label>Rôle</label>
+        <select id="na-role">
+          <option value="agent">Agent de sécurité</option>
+          <option value="admin">Administrateur</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Site affecté</label>
+        <select id="na-site"><option value="">— Choisir un site —</option>${siteOptions}<option value="custom">Saisir manuellement...</option></select>
+      </div>
+      <div class="form-group" id="na-site-custom-row" style="display:none;"><label>Site (manuel)</label><input id="na-site-custom" placeholder="ex: Site C"/></div>
+      <div class="form-group"><label>Téléphone</label><input id="na-phone" placeholder="0600000000"/></div>
+      <div class="form-group"><label>Email</label><input id="na-email" placeholder="agent@securlog.fr"/></div>
+    </div>
+    <div id="ca-error" style="display:none;margin-top:0.5rem;" class="auth-error"></div>
+    <div class="modal-actions">
+      <button class="btn-sm" onclick="closeModal()">Annuler</button>
+      <button class="btn-sm success" onclick="createAgent()">Créer</button>
+    </div>`);
+  document.getElementById('na-site').addEventListener('change',function(){
+    document.getElementById('na-site-custom-row').style.display=this.value==='custom'?'flex':'none';
+  });
+};
+
+window.createAgent = async function() {
+  const id=document.getElementById('na-id').value.trim();
+  const name=document.getElementById('na-name').value.trim();
+  const pw=document.getElementById('na-pw').value;
+  const role=document.getElementById('na-role').value;
+  let site=document.getElementById('na-site').value;
+  if(site==='custom') site=document.getElementById('na-site-custom').value.trim();
+  const phone=document.getElementById('na-phone').value.trim();
+  const email=document.getElementById('na-email').value.trim();
+  const errEl=document.getElementById('ca-error');
+  if(!id||!name||!pw){ errEl.textContent='ID, nom et mot de passe requis.'; errEl.style.display='block'; return; }
+  if(state.agents.find(a=>a.id===id)){ errEl.textContent='Cet identifiant existe déjà.'; errEl.style.display='block'; return; }
+  const newAgent={id,name,password:pw,site:site||'Non défini',status:'actif',phone,email,isAdmin:role==='admin'};
+  const r = await fbPush('agents',newAgent);
+  newAgent._key=r.key;
+  state.agents.push(newAgent);
+  closeModal(); notify('Agent créé avec succès'); navTo('agents');
+};
+
+window.editAgent = function(key) {
+  const a=state.agents.find(x=>x._key===key);
+  const siteOptions = state.sites.map(s=>`<option value="${s.name}" ${a.site===s.name?'selected':''}>${s.name}</option>`).join('');
+  openModal(`
+    <h3>Modifier l'agent</h3>
+    <div style="display:flex;flex-direction:column;gap:0.75rem;">
+      <div class="form-group"><label>Nom complet</label><input id="ea-name" value="${a.name}"/></div>
+      <div class="form-group"><label>Nouveau mot de passe</label>
+        <div class="pw-field-wrap"><input type="password" id="ea-pw" placeholder="Laisser vide pour ne pas changer"/><button type="button" onclick="togglePw('ea-pw',this)">👁</button></div>
+      </div>
+      <div class="form-group"><label>Rôle</label>
+        <select id="ea-role"><option value="agent" ${!a.isAdmin?'selected':''}>Agent de sécurité</option><option value="admin" ${a.isAdmin?'selected':''}>Administrateur</option></select>
+      </div>
+      <div class="form-group"><label>Site</label>
+        <select id="ea-site"><option value="">— Choisir —</option>${siteOptions}<option value="${a.site}" ${!state.sites.find(s=>s.name===a.site)?'selected':''} style="display:none;">${a.site}</option></select>
+      </div>
+      <div class="form-group"><label>Téléphone</label><input id="ea-phone" value="${a.phone||''}"/></div>
+      <div class="form-group"><label>Email</label><input id="ea-email" value="${a.email||''}"/></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sm" onclick="closeModal()">Annuler</button>
+      <button class="btn-sm success" onclick="saveAgent('${key}')">Enregistrer</button>
+    </div>`);
+};
+
+window.saveAgent = async function(key) {
+  const a=state.agents.find(x=>x._key===key);
+  a.name=document.getElementById('ea-name').value.trim()||a.name;
+  const pw=document.getElementById('ea-pw').value;
+  if(pw) a.password=pw;
+  a.isAdmin=document.getElementById('ea-role').value==='admin';
+  const site=document.getElementById('ea-site').value;
+  if(site) a.site=site;
+  a.phone=document.getElementById('ea-phone').value.trim();
+  a.email=document.getElementById('ea-email').value.trim();
+  const updateData={name:a.name,site:a.site,phone:a.phone,email:a.email,isAdmin:a.isAdmin};
+  if(pw) updateData.password=pw;
+  await fbUpdate('agents/'+key, updateData);
+  closeModal(); notify('Agent mis à jour'); navTo('agents');
+};
+
+window.toggleAgent = async function(key) {
+  const a=state.agents.find(x=>x._key===key);
+  a.status=a.status==='actif'?'inactif':'actif';
+  await fbUpdate('agents/'+key,{status:a.status});
+  notify(`Agent ${a.status==='actif'?'activé':'désactivé'}`); navTo('agents');
+};
+
+window.confirmDeleteAgent = function(key) {
+  const a=state.agents.find(x=>x._key===key);
+  openModal(`
+    <h3>Confirmer la suppression</h3>
+    <div class="confirm-box">
+      <p>Supprimer définitivement le compte de <strong>${a.name}</strong> ?</p>
+      <p style="font-size:0.75rem;">Ses événements seront conservés. Action irréversible.</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sm" onclick="closeModal()">Annuler</button>
+      <button class="btn-sm danger" onclick="deleteAgent('${key}')">Supprimer</button>
+    </div>`);
+};
+
+window.deleteAgent = async function(key) {
+  await fbRemove('agents/'+key);
+  state.agents=state.agents.filter(a=>a._key!==key);
+  closeModal(); notify('Agent supprimé'); navTo('agents');
+};
+
+// ─── SITES ───
+function renderSites() {
+  const isAdmin = state.currentRole==='admin';
+  return `
+  <div class="page-header">
+    <div class="page-header-text"><h2>🏢 Sites de travail</h2><p>Tous les sites configurés — installables en APK</p></div>
+    ${isAdmin?`<button class="btn-sm success" onclick="openCreateSite()">+ Ajouter un site</button>`:''}
+  </div>
+  <div class="alert alert-info">📱 Pour installer un site en application : ouvrez le lien dans Chrome, puis dans le menu ⋮ → "Ajouter à l'écran d'accueil" (Android) ou "Installer l'application" (PC)</div>
+  <div class="sites-grid">
+    ${state.sites.length===0?`<p style="color:#4a6080;font-size:0.78rem;">Aucun site configuré.</p>`:''}
+    ${state.sites.map(s=>`
+      <div class="site-card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span class="site-color-dot" style="background:${s.color||'#4a9ede'};"></span>
+          <h4>${s.name}</h4>
+        </div>
+        <p>${s.address||'—'}</p>
+        <p style="margin-bottom:12px;">${s.description||''}</p>
+        <div class="site-card-actions">
+          ${s.url?`<a class="pwa-btn" href="${s.url}" target="_blank">🌐 Ouvrir</a>
+          <button class="pwa-btn" onclick="installSite('${s.url}','${s.name}')">📲 Installer APK</button>`:''}
+          ${isAdmin?`<button class="btn-sm" onclick="editSite('${s._key}')" style="margin-left:auto;">Modifier</button>
+          <button class="btn-sm danger" onclick="deleteSite('${s._key}')">Suppr.</button>`:''}
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
+window.installSite = function(url, name) {
+  openModal(`
+    <h3>📲 Installer "${name}" en APK</h3>
+    <div style="display:flex;flex-direction:column;gap:1rem;font-size:0.78rem;color:#c8d8e8;line-height:1.7;">
+      <div class="alert alert-info" style="margin:0;">Cette fonctionnalité utilise les PWA (Progressive Web App) — compatible Android & PC via Chrome.</div>
+      <div><strong style="color:#4a9ede;">📱 Sur Android (Chrome) :</strong><br>
+        1. Ouvrez le lien du site dans Chrome<br>
+        2. Appuyez sur le menu ⋮ (3 points en haut à droite)<br>
+        3. Sélectionnez <em>"Ajouter à l'écran d'accueil"</em><br>
+        4. Confirmez → L'icône apparaît comme une vraie app
+      </div>
+      <div><strong style="color:#4a9ede;">💻 Sur PC (Chrome) :</strong><br>
+        1. Ouvrez le lien dans Chrome<br>
+        2. Dans la barre d'adresse, cliquez l'icône 📥<br>
+        3. Cliquez <em>"Installer"</em><br>
+        4. Le site s'ouvre comme une application native
+      </div>
+      <a class="pwa-btn" href="${url}" target="_blank" style="align-self:flex-start;">🌐 Ouvrir ${name} dans Chrome</a>
+    </div>
+    <div class="modal-actions"><button class="btn-sm" onclick="closeModal()">Fermer</button></div>`);
+};
+
+window.openCreateSite = function() {
+  openModal(`
+    <h3>Ajouter un site</h3>
+    <div style="display:flex;flex-direction:column;gap:0.75rem;">
+      <div class="form-group"><label>Nom du site *</label><input id="ns-name" placeholder="ex: Site C — Entrepôt"/></div>
+      <div class="form-group"><label>Adresse</label><input id="ns-addr" placeholder="ex: 12 Rue du Commerce, Lyon"/></div>
+      <div class="form-group"><label>Description</label><input id="ns-desc" placeholder="ex: Zone logistique"/></div>
+      <div class="form-group"><label>URL du site (pour installation APK)</label><input id="ns-url" placeholder="https://..."/></div>
+      <div class="form-group"><label>Couleur</label><input type="color" id="ns-color" value="#4a9ede" style="width:60px;height:32px;padding:2px;cursor:pointer;"/></div>
+    </div>
+    <div id="ns-error" style="display:none;margin-top:0.5rem;" class="auth-error"></div>
+    <div class="modal-actions">
+      <button class="btn-sm" onclick="closeModal()">Annuler</button>
+      <button class="btn-sm success" onclick="createSite()">Ajouter</button>
+    </div>`);
+};
+
+window.createSite = async function() {
+  const name=document.getElementById('ns-name').value.trim();
+  const addr=document.getElementById('ns-addr').value.trim();
+  const desc=document.getElementById('ns-desc').value.trim();
+  const url=document.getElementById('ns-url').value.trim();
+  const color=document.getElementById('ns-color').value;
+  const errEl=document.getElementById('ns-error');
+  if(!name){ errEl.textContent='Le nom du site est requis.'; errEl.style.display='block'; return; }
+  const newSite={name,address:addr,description:desc,url,color};
+  const r=await fbPush('sites',newSite);
+  newSite._key=r.key;
+  state.sites.push(newSite);
+  closeModal(); notify('Site ajouté'); navTo('sites');
+};
+
+window.editSite = function(key) {
+  const s=state.sites.find(x=>x._key===key);
+  openModal(`
+    <h3>Modifier le site</h3>
+    <div style="display:flex;flex-direction:column;gap:0.75rem;">
+      <div class="form-group"><label>Nom *</label><input id="es-name" value="${s.name}"/></div>
+      <div class="form-group"><label>Adresse</label><input id="es-addr" value="${s.address||''}"/></div>
+      <div class="form-group"><label>Description</label><input id="es-desc" value="${s.description||''}"/></div>
+      <div class="form-group"><label>URL (pour installation APK)</label><input id="es-url" value="${s.url||''}"/></div>
+      <div class="form-group"><label>Couleur</label><input type="color" id="es-color" value="${s.color||'#4a9ede'}" style="width:60px;height:32px;padding:2px;cursor:pointer;"/></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sm" onclick="closeModal()">Annuler</button>
+      <button class="btn-sm success" onclick="saveSite('${key}')">Enregistrer</button>
+    </div>`);
+};
+
+window.saveSite = async function(key) {
+  const s=state.sites.find(x=>x._key===key);
+  s.name=document.getElementById('es-name').value.trim()||s.name;
+  s.address=document.getElementById('es-addr').value.trim();
+  s.description=document.getElementById('es-desc').value.trim();
+  s.url=document.getElementById('es-url').value.trim();
+  s.color=document.getElementById('es-color').value;
+  await fbUpdate('sites/'+key,{name:s.name,address:s.address,description:s.description,url:s.url,color:s.color});
+  closeModal(); notify('Site mis à jour'); navTo('sites');
+};
+
+window.deleteSite = async function(key) {
+  await fbRemove('sites/'+key);
+  state.sites=state.sites.filter(x=>x._key!==key);
+  notify('Site supprimé'); navTo('sites');
+};
+
+// ─── RAPPORTS ───
+function renderRapports() {
+  const byType={};
+  state.mainCourante.forEach(e=>{ byType[e.type]=(byType[e.type]||0)+1; });
+  return `
+  <div class="page-header"><div class="page-header-text"><h2>📊 Rapports & Statistiques</h2><p>Analyse de l'activité</p></div></div>
+  <div class="stats-grid">${Object.entries(byType).map(([t,c])=>`<div class="stat-card"><div class="stat-val">${c}</div><div class="stat-label">${t.replace('_',' ')}</div></div>`).join('')}</div>
+  <div class="form-section"><h3>Activité par agent</h3>
+    <div class="table-wrap"><table class="data-table">
+      <thead><tr><th>Agent</th><th>Site</th><th>Rôle</th><th>Nb événements</th><th>Incidents</th><th>Rondes</th></tr></thead>
+      <tbody>${state.agents.map(a=>`<tr>
+        <td>${a.name}</td><td>${a.site}</td>
+        <td>${a.isAdmin?'<span class="badge badge-purple">Admin</span>':'<span class="badge badge-info">Agent</span>'}</td>
+        <td>${state.mainCourante.filter(e=>e.agentId===a.id).length}</td>
+        <td>${state.mainCourante.filter(e=>e.agentId===a.id&&e.type==='incident').length}</td>
+        <td>${state.rondes.filter(r=>r.agentId===a.id).length}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+  </div>`;
+}
+
+// ─── SAISIE AGENT ───
+function renderSaisie() {
+  const now = new Date();
+  const hm = now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  const todayStr = now.toISOString().split('T')[0];
+  return `
+  <div class="page-header"><div class="page-header-text"><h2>✏ Saisir un événement</h2><p>Enregistrement dans la main courante</p></div></div>
+  <div class="form-section"><h3>Nouvel événement</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Type *</label>
+        <select id="ev-type">
+          <option value="prise_poste">Prise de poste</option>
+          <option value="ronde">Ronde effectuée</option>
+          <option value="incident">Incident</option>
+          <option value="transmission">Transmission de poste</option>
+          <option value="info">Information</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Priorité *</label>
+        <select id="ev-priority">
+          <option value="low">Normale</option>
+          <option value="med">Importante</option>
+          <option value="high">Urgente</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Date *</label><input type="date" id="ev-date" value="${todayStr}"/></div>
+      <div class="form-group"><label>Heure *</label><input type="time" id="ev-time" value="${hm}"/></div>
+    </div>
+    <div class="form-group" style="margin-bottom:1rem;">
+      <label>Titre *</label><input type="text" id="ev-title" placeholder="Résumé bref de l'événement..."/>
+    </div>
+    <div class="form-group">
+      <label>Description détaillée *</label>
+      <textarea id="ev-desc" rows="5" placeholder="Décrivez l'événement : circonstances, personnes impliquées, actions prises..."></textarea>
+    </div>
+    <div id="ev-error" style="display:none;margin-top:0.5rem;" class="alert alert-danger"></div>
+    <div style="display:flex;gap:8px;margin-top:1rem;">
+      <button class="btn-sm success" onclick="submitEvent()">✓ Enregistrer</button>
+      <button class="btn-sm" onclick="clearEventForm()">Effacer</button>
+    </div>
+  </div>`;
+}
+
+window.submitEvent = async function() {
+  const type=document.getElementById('ev-type').value;
+  const priority=document.getElementById('ev-priority').value;
+  const date=document.getElementById('ev-date').value;
+  const time=document.getElementById('ev-time').value;
+  const title=document.getElementById('ev-title').value.trim();
+  const desc=document.getElementById('ev-desc').value.trim();
+  const errEl=document.getElementById('ev-error');
+  if(!title||!desc||!date||!time){ errEl.textContent='Tous les champs obligatoires doivent être remplis.'; errEl.style.display='flex'; return; }
+  errEl.style.display='none';
+  const newEvent={
+    date, time,
+    agentId:state.currentUser.id, agentName:state.currentUser.name,
+    type, priority, title, description:desc,
+    site:state.currentUser.site||'—',
+    status:priority==='high'?'en cours':'validé'
+  };
+  const r = await fbPush('mainCourante', newEvent);
+  newEvent._key=r.key;
+  state.mainCourante.push(newEvent);
+  notify('Événement enregistré avec succès');
+  navTo('historique');
+};
+
+window.clearEventForm = function() {
+  ['ev-title','ev-desc'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const errEl=document.getElementById('ev-error');
+  if(errEl) errEl.style.display='none';
+};
+
+// ─── MES RONDES ───
+function renderMesRondes() {
+  const myRondes=state.rondes.filter(r=>r.agentId===state.currentUser.id);
+  return `
+  <div class="page-header"><div class="page-header-text"><h2>🔄 Mes rondes</h2><p>Historique et déclaration de rondes</p></div></div>
+  <div class="form-section"><h3>Déclarer une ronde</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Date</label><input type="date" id="r-date" value="${new Date().toISOString().split('T')[0]}"/></div>
+      <div class="form-group"><label>Heure début</label><input type="time" id="r-start"/></div>
+      <div class="form-group"><label>Heure fin</label><input type="time" id="r-end"/></div>
+    </div>
+    <div class="form-group"><label>Zones contrôlées (séparées par virgule)</label><input type="text" id="r-zones" placeholder="Zone 1, Zone 2, Zone 3"/></div>
+    <div class="form-group" style="margin-top:0.75rem;"><label>Anomalies constatées</label><textarea id="r-anomalies" placeholder="RAS ou décrivez les anomalies..."></textarea></div>
+    <button class="btn-sm success" onclick="submitRonde()" style="margin-top:0.75rem;">Enregistrer la ronde</button>
+  </div>
+  <div class="form-section"><h3>Historique de mes rondes</h3>
+    ${myRondes.length===0?'<p style="color:#4a6080;font-size:0.78rem;">Aucune ronde enregistrée.</p>':
+    `<div class="table-wrap"><table class="data-table">
+      <thead><tr><th>Date</th><th>Début</th><th>Fin</th><th>Zones</th><th>Anomalies</th><th>Statut</th></tr></thead>
+      <tbody>${myRondes.map(r=>`<tr>
+        <td>${r.date}</td><td>${r.start}</td><td>${r.end}</td>
+        <td><div class="tag-list">${(r.zones||[]).map(z=>`<span class="badge badge-info">${z}</span>`).join('')}</div></td>
+        <td style="font-size:0.75rem;color:${r.anomalies==='RAS'?'#27c99a':'#f0a020'};">${r.anomalies}</td>
+        <td>${r.status==='complète'?'<span class="badge badge-success">Complète</span>':'<span class="badge badge-warn">Anomalie</span>'}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`}
+  </div>`;
+}
+
+window.submitRonde = async function() {
+  const date=document.getElementById('r-date').value;
+  const start=document.getElementById('r-start').value;
+  const end=document.getElementById('r-end').value;
+  const zonesRaw=document.getElementById('r-zones').value.trim();
+  const anomalies=document.getElementById('r-anomalies').value.trim()||'RAS';
+  if(!date||!start||!end||!zonesRaw){ notify('Remplissez tous les champs','danger'); return; }
+  const zones=zonesRaw.split(',').map(z=>z.trim()).filter(Boolean);
+  const newRonde={agentId:state.currentUser.id,agentName:state.currentUser.name,date,start,end,zones,anomalies,status:anomalies.toUpperCase()==='RAS'?'complète':'anomalie'};
+  const r=await fbPush('rondes',newRonde);
+  newRonde._key=r.key;
+  state.rondes.push(newRonde);
+  notify('Ronde enregistrée'); navTo('mes_rondes');
+};
+
+// ─── MON PLANNING ───
+function renderMonPlanning() {
+  const myPlan=state.planning[state.currentUser.id]||{};
+  const todayStr=new Date().toISOString().split('T')[0];
+  return `
+  <div class="page-header"><div class="page-header-text"><h2>📅 Mon planning</h2><p>Emploi du temps de la semaine</p></div></div>
+  <div class="form-section"><h3>Semaine du 28 avril au 4 mai 2025</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:0.5rem;">
+      ${DAYS.map((day,i)=>{
+        const entry=myPlan[day]||null;
+        const shift=entry?entry.shift:'Non assigné';
+        const site=entry?entry.site:'';
+        const isToday=day===todayStr;
+        const isRest=shift==='Repos';
+        const isNight=shift.startsWith('N');
+        return `<div style="background:${isToday?'#0f1d2e':'#0a0e1a'};border:1px solid ${isToday?'#4a9ede':'#1e3a5f'};border-radius:3px;padding:0.75rem;text-align:center;">
+          <div style="font-size:0.62rem;color:#4a6080;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">${DAY_LABELS[i]}</div>
+          <div style="font-size:0.88rem;font-weight:600;color:${isRest?'#4a6080':isNight?'#9370db':'#4a9ede'};">${shift}</div>
+          ${site?`<div style="font-size:0.65rem;color:#27c99a;margin-top:4px;">📍 ${site}</div>`:''}
+          ${isToday?'<div style="font-size:0.6rem;color:#f0a020;margin-top:4px;">AUJOURD\'HUI</div>':''}
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+// ─── HISTORIQUE ───
+function renderHistorique() {
+  const mine=[...state.mainCourante].filter(e=>e.agentId===state.currentUser.id).reverse();
+  return `
+  <div class="page-header"><div class="page-header-text"><h2>📋 Mon historique</h2><p>Tous vos événements enregistrés</p></div></div>
+  <div class="timeline">
+    ${mine.length===0?'<p style="color:#4a6080;">Aucun événement enregistré.</p>':
+    mine.map(e=>`
+      <div class="tl-entry">
+        <div class="tl-dot ${e.type==='incident'?'incident':e.type==='ronde'?'ronde':'info'}"></div>
+        <div class="tl-time">${e.date} — ${e.time}</div>
+        <div class="tl-content ${e.priority==='high'?'incident-priority-high':e.priority==='med'?'incident-priority-med':'incident-priority-low'}">
+          <h4>${e.title}</h4><p>${e.description}</p>
+          <div class="tl-meta">${typeBadge(e.type)} ${priorityBadge(e.priority)} ${statusBadge(e.status)}</div>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
+// ─── MODAL ───
+window.openModal = function(html) {
+  document.getElementById('modal-inner').innerHTML=html;
+  document.getElementById('modal-bg').classList.add('open');
+};
+window.closeModal = function() { document.getElementById('modal-bg').classList.remove('open'); };
+document.addEventListener('click',e=>{ if(e.target.id==='modal-bg') closeModal(); });
+
+// ─── BADGE HELPERS ───
+function typeBadge(t) {
+  const map={prise_poste:'<span class="badge badge-info">Prise de poste</span>',ronde:'<span class="badge badge-success">Ronde</span>',incident:'<span class="badge badge-danger">Incident</span>',transmission:'<span class="badge badge-gray">Transmission</span>',info:'<span class="badge badge-info">Information</span>'};
+  return map[t]||`<span class="badge badge-gray">${t}</span>`;
+}
+function priorityBadge(p) {
+  const map={high:'<span class="badge badge-danger">Urgente</span>',med:'<span class="badge badge-warn">Importante</span>',low:'<span class="badge badge-gray">Normale</span>'};
+  return map[p]||'';
+}
+function statusBadge(s) {
+  const map={validé:'<span class="badge badge-success">Validé</span>','en cours':'<span class="badge badge-warn">En cours</span>',annulé:'<span class="badge badge-danger">Annulé</span>'};
+  return map[s]||`<span class="badge badge-gray">${s}</span>`;
+}
+
+// ─── INIT ───
+(async ()=>{
+  try {
+    await loadAllData();
+    document.getElementById('loading-overlay').style.display='none';
+    document.getElementById('auth-screen').style.display='flex';
+  } catch(err) {
+    document.querySelector('#loading-overlay p').textContent='Erreur de connexion Firebase';
+    document.querySelector('#loading-overlay p').style.color='#e24b4a';
+    console.error(err);
+  }
+})();
+</script>
+</body>
+</html>
